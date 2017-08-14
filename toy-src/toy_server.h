@@ -1,5 +1,5 @@
-#ifndef TOY_H
-#define TOY_H
+#ifndef TOY_SERVER_H
+#define TOY_SERVER_H
 #include "toy.h"
 
 int toy_server_init();
