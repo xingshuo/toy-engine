@@ -1,0 +1,6 @@
+toy
+3rd/lua53/src/liblua.a
+3rd/lua53/src/lua
+3rd/lua53/src/luac
+*.so
+*.o
