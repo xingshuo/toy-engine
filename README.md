@@ -9,10 +9,13 @@ Wiki
     2.examples/game.lua 为一个多人聊天室的简例，客户端程序可从终端读入消息，
       服务器广播给所有玩家，服务器定时向全部玩家发送server tick消息.
     3.该框架仅用于学习娱乐,没有任何商业价值.
+三方库
+-----
+    lua5.3.4源码[https://www.lua.org/ftp/lua-5.3.4.tar.gz]
 编译链接
 -----
     make
 环境搭建
 -----
     服务器: sh rungs.sh
-    客户端: sh runcs.sh (port) (ip) #多终端启动
+    客户端: sh runcs.sh (port) (ip) #可多终端启动
