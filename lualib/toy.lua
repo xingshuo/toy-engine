@@ -1,4 +1,5 @@
 local c = require "ltoy"
+
 local toy = {
     PTYPE_SOCKET = 1,
     PTYPE_TIMER = 2,
@@ -12,12 +13,12 @@ function toy.register_protocol(class)
     proto[id] = class
 end
 
-function toy.dispatch_message(prototype, msg, sz)
+function toy.dispatch_message(prototype, session, msg, sz)
     local p = proto[prototype]
     if p then
         local f = p.dispatch
         if f then
-            f(p.unpack(msg,sz))
+            f(p.unpack(session,msg,sz))
         end
     end
 end

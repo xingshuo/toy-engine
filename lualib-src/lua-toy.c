@@ -2,6 +2,7 @@
 #include "toy_server.h"
 #include "toy_env.h"
 #include "toy_timer.h"
+#include "lua-seri.h"
 #include <lua.h>
 #include <lauxlib.h>
 #include <stdlib.h>
@@ -20,16 +21,17 @@ traceback (lua_State *L) {
 }
 
 static int
-_cb(struct toy_context* ctx, int type, const void * msg, size_t sz) {
+_cb(struct toy_context* ctx, int type, uint32_t session, const void * msg, size_t sz) {
     lua_State *L = ctx->L;
     int trace = 1;
     lua_settop(L, 0);
     lua_pushcfunction(L, traceback);
     lua_rawgetp(L, LUA_REGISTRYINDEX, _cb);
     lua_pushinteger(L, type);
+    lua_pushinteger(L, session);
     lua_pushlightuserdata(L, (void *)msg);
     lua_pushinteger(L,sz);
-    int r = lua_pcall(L, 3, 0 , trace);
+    int r = lua_pcall(L, 4, 0 , trace);
     if (r == LUA_OK) {
         return 0;
     }
@@ -85,7 +87,7 @@ lsetenv(lua_State *L) {
 static int
 ltimeout(lua_State *L) {
     int ti = luaL_checkinteger(L,1);
-    int session = luaL_checkinteger(L,2);
+    uint32_t session = luaL_checkinteger(L,2);
     toy_timeout(ti, session);
     return 0;
 }
@@ -98,6 +100,8 @@ luaopen_ltoy(lua_State *L) {
         { "setenv", lsetenv},
         { "getenv", lgetenv},
         { "timeout", ltimeout},
+        { "pack", luaseri_pack },
+        { "unpack", luaseri_unpack },
         { NULL, NULL },
     };
     luaL_newlibtable(L, l);

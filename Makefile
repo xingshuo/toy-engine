@@ -28,7 +28,7 @@ $(TOY_BUILD_PATH)/toy : $(foreach v, $(TOY_SRC), toy-src/$(v)) $(LUA_LIB)
 $(LUA_CLIB_PATH) :
 	mkdir $(LUA_CLIB_PATH)
 
-$(LUA_CLIB_PATH)/ltoy.so : lualib-src/lua-toy.c | $(LUA_CLIB_PATH)
+$(LUA_CLIB_PATH)/ltoy.so : lualib-src/lua-toy.c lualib-src/lua-seri.c | $(LUA_CLIB_PATH)
 	$(CC) $(CFLAGS) $(SHARED) $^ -o $@ -Itoy-src -Ilualib-src
 
 $(LUA_CLIB_PATH)/socketdriver.so : lualib-src/lua-socket.c | $(LUA_CLIB_PATH)

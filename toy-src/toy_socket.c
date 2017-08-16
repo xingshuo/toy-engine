@@ -45,6 +45,7 @@ forward_message(int type, bool padding, struct socket_message * result) {
     struct toy_message message;
     message.data = sm;
     message.sz = sz | ((size_t)PTYPE_SOCKET << MESSAGE_TYPE_SHIFT);
+    message.session = result->opaque;
     toy_mq_push(&message);
 }
 
@@ -59,7 +60,7 @@ toy_socket_poll() {
     case SOCKET_EXIT:
         return 0;
     case SOCKET_DATA:
-        printf("message(%lu) [id=%d] size=%d\n",result.opaque,result.id, result.ud);
+        //printf("message(%lu) [id=%d] size=%d\n",result.opaque,result.id, result.ud);
         forward_message(TOY_SOCKET_TYPE_DATA, false, &result);
         //free(result.data);
         break;
@@ -87,18 +88,18 @@ toy_socket_poll() {
 }
 
 int 
-toy_socket_listen(const char *host, int port, int backlog) {
-    return socket_server_listen(SOCKET_SERVER, 0, host, port, backlog);
+toy_socket_listen(uint32_t opaque, const char *host, int port, int backlog) {
+    return socket_server_listen(SOCKET_SERVER, opaque, host, port, backlog);
 }
 
 void 
-toy_socket_start(int id) {
-    socket_server_start(SOCKET_SERVER, 0, id);
+toy_socket_start(uint32_t opaque, int id) {
+    socket_server_start(SOCKET_SERVER, opaque, id);
 }
 
 void 
-toy_socket_close(int id) {
-    socket_server_close(SOCKET_SERVER, 0, id);
+toy_socket_close(uint32_t opaque, int id) {
+    socket_server_close(SOCKET_SERVER, opaque, id);
 }
 
 void
@@ -109,6 +110,11 @@ toy_socket_nodelay(int id) {
 int
 toy_socket_send(int id, void *buffer, int sz) {
     return socket_server_send(SOCKET_SERVER, id, buffer, sz);
+}
+
+int
+toy_socket_connect(uint32_t opaque, const char *host, int port) {
+    return socket_server_connect(SOCKET_SERVER, opaque , host, port);
 }
 
 void

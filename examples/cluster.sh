@@ -1,0 +1,1 @@
+./toy examples/cluster/config$1

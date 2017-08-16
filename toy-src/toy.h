@@ -17,7 +17,7 @@
 
 struct toy_context;
 
-typedef int (*toy_cb)(struct toy_context * ctx, int type, const void * msg, size_t sz);
+typedef int (*toy_cb)(struct toy_context * ctx, int type, uint32_t session, const void * msg, size_t sz);
 
 struct toy_context {
     lua_State * L; //main thread L

@@ -53,7 +53,7 @@ toy_mq_pop(struct toy_message* msg) {
     SPIN_LOCK(Q)
     int suc = 1;
     if (Q->head != Q->tail) { //not empty
-        *msg = Q->queue[Q->head++]; // 
+        *msg = Q->queue[Q->head++]; //it is safe way
         if (Q->head >= Q->cap) {
             Q->head = 0;
         }

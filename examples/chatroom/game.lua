@@ -3,16 +3,10 @@ local gate = require "gate"
 local toy = require "toy"
 local timer = require "timer"
 local netpack = require "netpack"
+local const = require "const"
+local utils = require "utils"
 
 local sfmt = string.format 
-
-local table_len = function ( mt )
-    local cnt = 0
-    for k,v in pairs(mt) do
-        cnt = cnt + 1
-    end
-    return cnt
-end
 
 local function netsend(fd, sender, msg)
     msg = sfmt([[{"sender":%d,"msg":"%s","self":%d}]],sender,msg,fd)
@@ -36,7 +30,7 @@ function chat_member:init( cfg )
 end
 
 function chat_member:quit()
-    socketdriver.close(self.fd)
+
 end
 
 local chat_group = {}
@@ -89,12 +83,12 @@ function chat_group:broadcast(sender,  msg)
 end
 
 function chat_group:member_size()
-    return table_len(self.members)
+    return utils.table_len(self.members)
 end
 
 g_ChatMgr = chat_group:new()
 
-gate.set_sockmsg_hook(function (type, ...)
+gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLIENT, function (type, ...)
     local fd = ...
     if type == "open" then
         local o_mem = chat_member:new({fd = fd})
@@ -106,3 +100,4 @@ gate.set_sockmsg_hook(function (type, ...)
         g_ChatMgr:member_chat(fd, data)
     end
 end)
+

@@ -1,1 +1,0 @@
-./toy examples/config

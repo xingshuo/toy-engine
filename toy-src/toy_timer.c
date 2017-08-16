@@ -26,7 +26,7 @@ typedef void (*timer_execute_func)(void *ud,void *arg);
 #define TIME_LEVEL_MASK (TIME_LEVEL-1)
 
 struct timer_event {
-	int session;
+	uint32_t session;
 };
 
 struct timer_node {
@@ -139,7 +139,8 @@ dispatch_list(struct timer_node *current) {
 	do {
 		struct timer_event * event = (struct timer_event *)(current+1);
 		struct toy_message message;
-		message.data = (void *)(intptr_t)(event->session);
+		message.data = NULL;
+		message.session = event->session;
 		message.sz = (size_t)PTYPE_TIMER << MESSAGE_TYPE_SHIFT;
 		toy_mq_push(&message);
 		struct timer_node * temp = current;
@@ -201,12 +202,12 @@ timer_create_timer() {
 }
 
 int
-toy_timeout(int time, int session) {
+toy_timeout(int time, uint32_t session) {
 	if (time <= 0) {
 		struct toy_message message;
-		message.data = (void*)(intptr_t)session;
+		message.data = NULL;
 		message.sz = (size_t)PTYPE_TIMER << MESSAGE_TYPE_SHIFT;
-
+		message.session = session;
 		toy_mq_push(&message);
 	} else {
 		struct timer_event event;

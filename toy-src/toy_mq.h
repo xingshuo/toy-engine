@@ -9,6 +9,7 @@
 struct toy_message {
     void* data;
     size_t sz;
+    uint32_t session; //for socket it's opaque, for timer it's session
 };
 
 struct message_queue {

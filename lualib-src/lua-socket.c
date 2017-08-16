@@ -73,12 +73,51 @@ get_buffer(lua_State *L, int index, int *sz) {
     return buffer;
 }
 
+static const char *
+address_port(lua_State *L, char *tmp, const char * addr, int port_index, int *port) {
+    const char * host;
+    if (lua_isnoneornil(L,port_index)) {
+        host = strchr(addr, '[');
+        if (host) {
+            // is ipv6
+            ++host;
+            const char * sep = strchr(addr,']');
+            if (sep == NULL) {
+                luaL_error(L, "Invalid address %s.",addr);
+            }
+            memcpy(tmp, host, sep-host);
+            tmp[sep-host] = '\0';
+            host = tmp;
+            sep = strchr(sep + 1, ':');
+            if (sep == NULL) {
+                luaL_error(L, "Invalid address %s.",addr);
+            }
+            *port = strtoul(sep+1,NULL,10);
+        } else {
+            // is ipv4
+            const char * sep = strchr(addr,':');
+            if (sep == NULL) {
+                luaL_error(L, "Invalid address %s.",addr);
+            }
+            memcpy(tmp, addr, sep-addr);
+            tmp[sep-addr] = '\0';
+            host = tmp;
+            *port = strtoul(sep+1,NULL,10);
+        }
+    } else {
+        host = addr;
+        *port = luaL_optinteger(L,port_index, 0);
+    }
+    return host;
+}
+
 static int
 llisten(lua_State *L) {
     const char * host = luaL_checkstring(L,1);
     int port = luaL_checkinteger(L,2);
-    int backlog = luaL_optinteger(L,3,BACKLOG);
-    int id = toy_socket_listen(host, port, backlog);
+    uint32_t opaque = luaL_checkinteger(L,3);
+    int backlog = luaL_optinteger(L,4,BACKLOG);
+    int id = toy_socket_listen(opaque, host, port, backlog);
     if (id < 0) {
         return luaL_error(L, "Listen error");
     }
@@ -90,14 +129,34 @@ llisten(lua_State *L) {
 static int
 lstart(lua_State *L) {
     int id = luaL_checkinteger(L, 1);
-    toy_socket_start(id);
+    uint32_t opaque = luaL_checkinteger(L, 2);
+    toy_socket_start(opaque, id);
     return 0;
+}
+
+static int
+lconnect(lua_State *L) {
+    size_t sz = 0;
+    const char * addr = luaL_checklstring(L,1,&sz);
+    char tmp[sz];
+    int port = 0;
+    const char * host = address_port(L, tmp, addr, 2, &port);
+    if (port == 0) {
+        return luaL_error(L, "Invalid port");
+    }
+    uint32_t opaque = luaL_checkinteger(L,3);
+    printf("connect ip:%s port:%d\n", host, port);
+    int id = toy_socket_connect(opaque, host, port);
+    lua_pushinteger(L, id);
+
+    return 1;
 }
 
 static int
 lclose(lua_State *L) {
     int id = luaL_checkinteger(L,1);
-    toy_socket_close(id);
+    uint32_t opaque = luaL_checkinteger(L,2);
+    toy_socket_close(opaque, id);
     return 0;
 }
 
@@ -128,6 +187,7 @@ luaopen_socketdriver(lua_State *L) {
         { "close", lclose },
         { "nodelay", lnodelay },
         { "send", lsend },
+        { "connect", lconnect },
         { NULL, NULL },
     };
     luaL_newlib(L,l);

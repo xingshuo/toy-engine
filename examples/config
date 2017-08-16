@@ -1,5 +1,0 @@
-
-start = "./examples/game.lua"
-port = 8888
-lua_path = "./examples/?.lua;./lualib/?.lua"
-lua_cpath = "./luaclib/?.so"

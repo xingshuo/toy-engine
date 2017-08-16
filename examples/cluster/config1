@@ -1,0 +1,8 @@
+
+start = "./examples/cluster/game.lua"
+client_ports = "6001,6002"
+cluster_port = 6003
+lua_path = "./examples/cluster/?.lua;./lualib/?.lua"
+lua_cpath = "./luaclib/?.so"
+clustername = "C1"
+cluster = "./examples/cluster/clustername.lua"

@@ -16,10 +16,11 @@ struct toy_socket_message {
 
 void toy_socket_init();
 int toy_socket_poll();
-int toy_socket_listen(const char *, int, int);
-void toy_socket_start(int);
-void toy_socket_close(int);
+int toy_socket_listen(uint32_t, const char *, int, int);
+void toy_socket_start(uint32_t, int);
+void toy_socket_close(uint32_t, int);
 void toy_socket_nodelay(int);
 int toy_socket_send(int, void*, int);
+int toy_socket_connect(uint32_t, const char *, int);
 void toy_socket_exit();
 #endif

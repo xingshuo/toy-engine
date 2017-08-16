@@ -21,6 +21,7 @@
 #define TYPE_ERROR 3
 #define TYPE_OPEN 4
 #define TYPE_CLOSE 5
+#define TYPE_CONNECT 6
 
 /*
 	Each package is uint16 + data , uint16 (serialized in big-endian) is the number of bytes comprising the data .
@@ -354,7 +355,9 @@ lfilter(lua_State *L) {
 		return filter_data(L, message->id, (uint8_t *)buffer, message->ud);
 	case TOY_SOCKET_TYPE_CONNECT:
 		// ignore listen fd connect
-		return 1;
+		lua_pushvalue(L, lua_upvalueindex(TYPE_CONNECT));
+		lua_pushinteger(L, message->id);
+		return 3;
 	case TOY_SOCKET_TYPE_CLOSE:
 		// no more data in fd (message->id)
 		close_uncomplete(L, message->id);
@@ -484,7 +487,7 @@ luaopen_netpack(lua_State *L) {
 	lua_pushliteral(L, "error");
 	lua_pushliteral(L, "open");
 	lua_pushliteral(L, "close");
-	lua_pushliteral(L, "warning");
+	lua_pushliteral(L, "connect");
 
 	lua_pushcclosure(L, lfilter, 6);
 	lua_setfield(L, -2, "filter");

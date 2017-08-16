@@ -1,0 +1,5 @@
+
+start = "./examples/chatroom/game.lua"
+client_ports = "8888,8889"
+lua_path = "./examples/chatroom/?.lua;./lualib/?.lua"
+lua_cpath = "./luaclib/?.so"

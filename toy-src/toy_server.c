@@ -9,7 +9,7 @@ static void
 dispatch_message(struct toy_message* msg) {
     int type = msg->sz >> MESSAGE_TYPE_SHIFT;
     size_t sz = msg->sz & MESSAGE_TYPE_MASK;
-    C->cb(C, type, msg->data, sz);
+    C->cb(C, type, msg->session, msg->data, sz);
 }
 
 static void*

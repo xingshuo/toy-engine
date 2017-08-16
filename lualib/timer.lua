@@ -23,8 +23,8 @@ end
 toy.register_protocol {
     id = toy.PTYPE_TIMER,
     name = "timer",
-    unpack = function ( msg, sz )
-        return netpack.tointeger( msg )
+    unpack = function (session, msg, sz )
+        return session
     end,
     dispatch = function (session)
         local func = timer_cbs[session]
