@@ -1,4 +1,5 @@
 local socketdriver = require "socketdriver"
+local ltoy = require "ltoy"
 local toy = require "toy"
 local gate = require "gate"
 local const = require "const"
@@ -73,7 +74,7 @@ function connection:push(data)
 end
 
 function connection:send(data)
-    data = utils.table2str(data)
+    data = ltoy.packstring(table.unpack(data))
     local pkg = string.pack('>s2', data)
     socketdriver.send(self.fd, pkg)
 end
@@ -136,7 +137,7 @@ local function handle_cluster_msg(fd, head, source, session, cmd, ... )
                 local ret = {f(source, ...)}
                 local data = {'resp', M.clustername(), session, cmd}
                 table.move(ret,1,#ret,#data+1,data)
-                local data = utils.table2str(data)
+                data = ltoy.packstring(table.unpack(data))
                 local pkg = string.pack('>s2', data)
                 socketdriver.send(fd, pkg)
             end
@@ -166,9 +167,8 @@ gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLUSTER, function (type, ...)
             c:release()
         end
     elseif type == "data" then
-        local data = select(2,...)
-        local mt = utils.str2table(data)
-        handle_cluster_msg(fd,table.unpack(mt))
+        local msg,sz = select(2,...)
+        handle_cluster_msg(fd, ltoy.unpack(msg,sz))
     end
 end)
 

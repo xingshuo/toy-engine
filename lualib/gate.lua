@@ -37,8 +37,7 @@ function CMD.set_sockmsg_hook(opaque, f)
 end
 
 local function dispatch_msg(opaque, fd, msg, sz)
-    local data = netpack.tostring(msg, sz)
-    handle_socket_msg("data", opaque, fd, data)
+    handle_socket_msg("data", opaque, fd, msg, sz)
 end
 
 MSG.data = dispatch_msg

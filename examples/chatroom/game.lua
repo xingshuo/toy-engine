@@ -96,7 +96,8 @@ gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLIENT, function (type, ...)
     elseif type == "close" then
         g_ChatMgr:del_member(fd)
     elseif type == "data" then
-        local data = select(2,...)
+        local msg,sz = select(2,...)
+        local data = netpack.tostring(msg, sz)
         g_ChatMgr:member_chat(fd, data)
     end
 end)

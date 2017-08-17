@@ -92,6 +92,16 @@ ltimeout(lua_State *L) {
     return 0;
 }
 
+static int
+lpackstring(lua_State *L) {
+    luaseri_pack(L);
+    char * str = (char *)lua_touserdata(L, -2);
+    int sz = lua_tointeger(L, -1);
+    lua_pushlstring(L, str, sz);
+    toy_free(str);
+    return 1;
+}
+
 LUAMOD_API int
 luaopen_ltoy(lua_State *L) {
     luaL_checkversion(L);
@@ -102,6 +112,7 @@ luaopen_ltoy(lua_State *L) {
         { "timeout", ltimeout},
         { "pack", luaseri_pack },
         { "unpack", luaseri_unpack },
+        { "packstring", lpackstring },
         { NULL, NULL },
     };
     luaL_newlibtable(L, l);
