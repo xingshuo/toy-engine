@@ -102,6 +102,37 @@ lpackstring(lua_State *L) {
     return 1;
 }
 
+static int
+ltostring(lua_State *L) {
+    if (lua_isnoneornil(L,1)) {
+        return 0;
+    }
+    char * msg = lua_touserdata(L,1);
+    int sz = luaL_checkinteger(L,2);
+    lua_pushlstring(L,msg,sz);
+    return 1;
+}
+
+static int
+ltrash(lua_State *L) {
+    int t = lua_type(L,1);
+    switch (t) {
+    case LUA_TSTRING: {
+        break;
+    }
+    case LUA_TLIGHTUSERDATA: {
+        void * msg = lua_touserdata(L,1);
+        luaL_checkinteger(L,2);
+        toy_free(msg);
+        break;
+    }
+    default:
+        luaL_error(L, "toy.trash invalid param %s", lua_typename(L,t));
+    }
+
+    return 0;
+}
+
 LUAMOD_API int
 luaopen_ltoy(lua_State *L) {
     luaL_checkversion(L);
@@ -113,6 +144,8 @@ luaopen_ltoy(lua_State *L) {
         { "pack", luaseri_pack },
         { "unpack", luaseri_unpack },
         { "packstring", lpackstring },
+        { "tostring", ltostring },
+        { "trash" , ltrash },
         { NULL, NULL },
     };
     luaL_newlibtable(L, l);
