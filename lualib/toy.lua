@@ -75,30 +75,6 @@ local function suspend(co, result, command, ...)
     end
 end
 
-function toy.wait(co)
-    local session = genid_co_sin()
-    coroutine_yield("SLEEP", session)
-    co = co or coroutine.running()
-    sleep_session[co] = nil
-    session_id_coroutine[session] = nil
-end
-
-function toy.wakeup(co)
-    if sleep_session[co] then
-        table.insert(wakeup_queue, co)
-        return true
-    end
-end
-
-function toy.fork(func,...)
-    local args = table.pack(...)
-    local co = co_create(function()
-        func(table.unpack(args,1,args.n))
-    end)
-    table.insert(fork_queue, co)
-    return co
-end
-
 function toy.dispatch_message(prototype, session, msg, sz)
     local p = proto[prototype]
     if p then
@@ -118,6 +94,39 @@ function toy.dispatch_message(prototype, session, msg, sz)
     end
 end
 
+function toy.wait(co)
+    local session = genid_co_sin()
+    coroutine_yield("SLEEP", session)
+    co = co or coroutine.running()
+    sleep_session[co] = nil
+    session_id_coroutine[session] = nil
+end
+
+function toy.wakeup(co)
+    if sleep_session[co] then
+        table.insert(wakeup_queue, co)
+        return true
+    end
+end
+
+function toy.sleep(ti)
+    local timer = require "timer"
+    local co = coroutine.running()
+    timer.timeout(ti, function ()
+        toy.wakeup(co)
+    end)
+    toy.wait(co)
+end
+
+function toy.fork(func,...)
+    local args = table.pack(...)
+    local co = co_create(function()
+        func(table.unpack(args,1,args.n))
+    end)
+    table.insert(fork_queue, co)
+    return co
+end
+
 function toy.start()
     c.callback(toy.dispatch_message)
 end
@@ -130,34 +139,23 @@ function toy.getenv(key)
     return c.getenv(key)
 end
 
--- local co_session = 0
--- local susp_env = {}
-
--- function toy.suspend(env, cb)
---     assert(not env.co)
---     co_session = co_session + 1
---     env.co = co_session
---     susp_env[co_session] = cb
--- end
-
--- function toy.wakeup(env, ...)
---     local co = env.co
---     if co then
---         env.co = nil
---         local cb = susp_env[co]
---         if cb then
---             susp_env[co] = nil
---             cb(...)
---         end
---     end
--- end
-
 function toy.error( ... )
     print(...)
 end
 
 function toy.ferror(s, ... )
     print(sfmt(s,...))
+end
+
+function toy.task()
+    local ret = {}
+    local t = 0
+    for session,co in pairs(session_id_coroutine) do
+        ret[session] = debug.traceback(co)
+        t = t + 1
+    end
+    ret.n = t
+    return ret
 end
 
 return toy
