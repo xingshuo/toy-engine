@@ -88,7 +88,7 @@ end
 
 g_ChatMgr = chat_group:new()
 
-gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLIENT, function (type, ...)
+gate.register(const.SOCK_OPAQUE_CLIENT, function (type, ...)
     local fd = ...
     if type == "open" then
         local o_mem = chat_member:new({fd = fd})
@@ -100,5 +100,5 @@ gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLIENT, function (type, ...)
         local data = netpack.tostring(msg, sz)
         g_ChatMgr:member_chat(fd, data)
     end
-end)
+end )
 

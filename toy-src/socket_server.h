@@ -30,11 +30,12 @@ int socket_server_poll(struct socket_server *, struct socket_message *result, in
 
 void socket_server_exit(struct socket_server *);
 void socket_server_close(struct socket_server *, uintptr_t opaque, int id);
+void socket_server_shutdown(struct socket_server *, uintptr_t opaque, int id);
 void socket_server_start(struct socket_server *, uintptr_t opaque, int id);
 
 // return -1 when error
 int64_t socket_server_send(struct socket_server *, int id, const void * buffer, int sz);
-void socket_server_send_lowpriority(struct socket_server *, int id, const void * buffer, int sz);
+int socket_server_send_lowpriority(struct socket_server *, int id, const void * buffer, int sz);
 
 // ctrl command below returns id
 int socket_server_listen(struct socket_server *, uintptr_t opaque, const char * addr, int port, int backlog);

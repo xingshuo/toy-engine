@@ -102,6 +102,11 @@ toy_socket_close(uint32_t opaque, int id) {
     socket_server_close(SOCKET_SERVER, opaque, id);
 }
 
+void 
+toy_socket_shutdown(uint32_t opaque, int id) {
+    socket_server_shutdown(SOCKET_SERVER, opaque, id);
+}
+
 void
 toy_socket_nodelay(int id) {
     socket_server_nodelay(SOCKET_SERVER, id);
@@ -110,6 +115,11 @@ toy_socket_nodelay(int id) {
 int
 toy_socket_send(int id, void *buffer, int sz) {
     return socket_server_send(SOCKET_SERVER, id, buffer, sz);
+}
+
+int
+toy_socket_send_lowpriority(int id, void *buffer, int sz) {
+    return socket_server_send_lowpriority(SOCKET_SERVER, id, buffer, sz);
 }
 
 int

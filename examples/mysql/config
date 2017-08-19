@@ -1,0 +1,4 @@
+start = "./examples/mysql/game.lua"
+client_ports = "9888,9889"
+lua_path = "./examples/mysql/?.lua;./lualib/?.lua"
+lua_cpath = "./luaclib/?.so"

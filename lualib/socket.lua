@@ -8,7 +8,7 @@ local socket_pool = setmetatable( -- store all socket object
 	{},
 	{ __gc = function(p)
 		for id,v in pairs(p) do
-			driver.close(id)
+			driver.close(id, p.opaque)
 			-- don't need clear v.buffer, because buffer pool will be free at the end
 			p[id] = nil
 		end
@@ -60,7 +60,7 @@ socket_message[1] = function(id, size, data)
 		if s.buffer_limit and sz > s.buffer_limit then
 			toy.error(string.format("socket buffer overflow: fd=%d size=%d", id , sz))
 			driver.clear(s.buffer,buffer_pool)
-			driver.close(id)
+			driver.close(id, s.opaque)
 			return
 		end
 		if rrt == "string" then
@@ -98,7 +98,7 @@ end
 socket_message[4] = function(id, newid, addr)
 	local s = socket_pool[id]
 	if s == nil then
-		driver.close(newid)
+		driver.close(newid, 0)
 		return
 	end
 	s.callback(newid, addr)
@@ -117,22 +117,9 @@ socket_message[5] = function(id, _, err)
 		s.connecting = err
 	end
 	s.connected = false
-	driver.shutdown(id)
+	driver.shutdown(id, s.opaque)
 
 	wakeup(s)
-end
-
--- TOY_SOCKET_TYPE_UDP = 6
-socket_message[6] = function(id, size, data, address)
-	local s = socket_pool[id]
-	if s == nil or s.callback == nil then
-		toy.error("socket: drop udp package from " .. id)
-		driver.drop(data, size)
-		return
-	end
-	local str = toy.tostring(data, size)
-	toy.trash(data, size)
-	s.callback(str, address)
 end
 
 local function default_warning(id, size)
@@ -152,18 +139,17 @@ socket_message[7] = function(id, size)
 	end
 end
 
-toy.register_protocol {
-	name = "socket",
-	id = toy.PTYPE_SOCKET,
-	unpack = function (opaque, ...)
-		return opaque,driver.unpack(...)
-	end,
-	dispatch = function (opaque, t, ...)
-		socket_message[t](...)
-	end
-}
+function socket.register(opaque)
+	toy.register_socket_protocol {
+		opaque = opaque,
+		unpack = driver.unpack,
+		dispatch = function (opaque, t, ...)
+			socket_message[t](...)
+		end
+	}
+end
 
-local function connect(id, func)
+local function connect(id, opaque, func)
 	local newbuffer
 	if func == nil then
 		newbuffer = driver.buffer()
@@ -177,6 +163,7 @@ local function connect(id, func)
 		co = false,
 		callback = func,
 		protocol = "TCP",
+		opaque = opaque,
 	}
 	assert(not socket_pool[id], "socket is not closed")
 	socket_pool[id] = s
@@ -191,23 +178,14 @@ local function connect(id, func)
 	end
 end
 
-function socket.open(addr, port)
-	local id = driver.connect(addr,port)
-	return connect(id)
+function socket.open(addr, port, opaque)
+	local id = driver.connect(addr,port,opaque)
+	return connect(id, opaque)
 end
 
-function socket.bind(os_fd)
-	local id = driver.bind(os_fd)
-	return connect(id)
-end
-
-function socket.stdin()
-	return socket.bind(0)
-end
-
-function socket.start(id, func)
-	driver.start(id)
-	return connect(id, func)
+function socket.start(id, opaque, func)
+	driver.start(id, opaque)
+	return connect(id, opaque, func)
 end
 
 local function close_fd(id, func)
@@ -217,7 +195,7 @@ local function close_fd(id, func)
 			driver.clear(s.buffer,buffer_pool)
 		end
 		if s.connected then
-			func(id)
+			func(id, s.opaque)
 		end
 	end
 end
@@ -226,9 +204,9 @@ function socket.shutdown(id)
 	close_fd(id, driver.shutdown)
 end
 
-function socket.close_fd(id)
+function socket.close_fd(id, opaque)
 	assert(socket_pool[id] == nil,"Use socket.close instead")
-	driver.close(id)
+	driver.close(id, opaque)
 end
 
 function socket.close(id)
@@ -237,7 +215,7 @@ function socket.close(id)
 		return
 	end
 	if s.connected then
-		driver.close(id)
+		driver.close(id, s.opaque)
 		-- notice: call socket.close in __gc should be carefully,
 		-- because toy.wait never return in __gc, so driver.clear may not be called
 		if s.co then
@@ -353,12 +331,12 @@ function socket.invalid(id)
 	return socket_pool[id] == nil
 end
 
-function socket.listen(host, port, backlog)
+function socket.listen(host, port, opaque, backlog)
 	if port == nil then
 		host, port = string.match(host, "([^:]+):(.+)$")
 		port = tonumber(port)
 	end
-	return driver.listen(host, port, backlog)
+	return driver.listen(host, port, opaque, backlog)
 end
 
 function socket.lock(id)
@@ -403,40 +381,6 @@ function socket.limit(id, limit)
 	local s = assert(socket_pool[id])
 	s.buffer_limit = limit
 end
-
----------------------- UDP
-
-local function create_udp_object(id, cb)
-	assert(not socket_pool[id], "socket is not closed")
-	socket_pool[id] = {
-		id = id,
-		connected = true,
-		protocol = "UDP",
-		callback = cb,
-	}
-end
-
-function socket.udp(callback, host, port)
-	local id = driver.udp(host, port)
-	create_udp_object(id, callback)
-	return id
-end
-
-function socket.udp_connect(id, addr, port, callback)
-	local obj = socket_pool[id]
-	if obj then
-		assert(obj.protocol == "UDP")
-		if callback then
-			obj.callback = callback
-		end
-	else
-		create_udp_object(id, callback)
-	end
-	driver.udp_connect(id, addr, port)
-end
-
-socket.sendto = assert(driver.udp_send)
-socket.udp_address = assert(driver.udp_address)
 
 function socket.warning(id, callback)
 	local obj = socket_pool[id]

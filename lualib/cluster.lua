@@ -154,7 +154,7 @@ local function handle_cluster_msg(fd, head, source, session, cmd, ... )
     end
 end
 
-gate.set_sockmsg_hook(const.SOCK_OPAQUE_CLUSTER, function (type, ...)
+gate.register(const.SOCK_OPAQUE_CLUSTER, function (type, ...)
     local fd = ...
     if type == "connect" then
         local c = conn_map[fd]

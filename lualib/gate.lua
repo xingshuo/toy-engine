@@ -1,5 +1,6 @@
 local netpack = require "netpack"
 local socketdriver = require "socketdriver"
+local const = require "const"
 local toy = require "toy"
 local queue     -- message queue
 local CMD = setmetatable({}, { __gc = function() 
@@ -31,10 +32,6 @@ local function handle_socket_msg(type, opaque, ...)
 end
 
 local MSG = {}
-
-function CMD.set_sockmsg_hook(opaque, f)
-    sockmsg_hooks[opaque] = f
-end
 
 local function dispatch_msg(opaque, fd, msg, sz)
     handle_socket_msg("data", opaque, fd, msg, sz)
@@ -75,18 +72,20 @@ function MSG.connect(opaque, fd)
     handle_socket_msg("connect", opaque, fd)
 end
 
-toy.register_protocol {
-    id = toy.PTYPE_SOCKET,
-    name = "socket",
-    unpack = function (opaque, msg, sz )
-        return opaque,netpack.filter( queue, msg, sz)
-    end,
-    dispatch = function (opaque, q, type, ...)
-        queue = q
-        if type then
-            MSG[type](opaque, ...)
+function CMD.register(opaque, f)
+    toy.register_socket_protocol {
+        opaque = opaque,
+        unpack = function (msg, sz )
+            return netpack.filter( queue, msg, sz)
+        end,
+        dispatch = function (opaque, q, type, ...)
+            queue = q
+            if type then
+                MSG[type](opaque, ...)
+            end
         end
-    end
-}
+    }
+    sockmsg_hooks[opaque] = f
+end
 
 return CMD

@@ -117,6 +117,7 @@ struct request_setudp {
 
 struct request_close {
 	int id;
+	int shutdown;
 	uintptr_t opaque;
 };
 
@@ -785,7 +786,7 @@ close_socket(struct socket_server *ss, struct request_close *request, struct soc
 		if (type != -1)
 			return type;
 	}
-	if (send_buffer_empty(s)) {
+	if (request->shutdown || send_buffer_empty(s)) {
 		force_close(ss,s,result);
 		result->id = id;
 		result->opaque = request->opaque;
@@ -1317,12 +1318,12 @@ socket_server_send(struct socket_server *ss, int id, const void * buffer, int sz
 	return s->wb_size;
 }
 
-void
+int
 socket_server_send_lowpriority(struct socket_server *ss, int id, const void * buffer, int sz) {
 	struct socket * s = &ss->slot[HASH_ID(id)];
 	if (s->id != id || s->type == SOCKET_TYPE_INVALID) {
 		free_buffer(ss, buffer, sz);
-		return;
+		return -1;
 	}
 
 	struct request_package request;
@@ -1331,6 +1332,7 @@ socket_server_send_lowpriority(struct socket_server *ss, int id, const void * bu
 	request.u.send.buffer = (char *)buffer;
 
 	send_request(ss, &request, 'P', sizeof(request.u.send));
+	return 0;
 }
 
 void
@@ -1343,6 +1345,16 @@ void
 socket_server_close(struct socket_server *ss, uintptr_t opaque, int id) {
 	struct request_package request;
 	request.u.close.id = id;
+	request.u.close.shutdown = 0;
+	request.u.close.opaque = opaque;
+	send_request(ss, &request, 'K', sizeof(request.u.close));
+}
+
+void
+socket_server_shutdown(struct socket_server *ss, uintptr_t opaque, int id) {
+	struct request_package request;
+	request.u.close.id = id;
+	request.u.close.shutdown = 1;
 	request.u.close.opaque = opaque;
 	send_request(ss, &request, 'K', sizeof(request.u.close));
 }

@@ -11,6 +11,7 @@ local toy = {
 }
 
 local proto = {}
+local socket_proto = {}
 
 toy.pack = assert(c.pack)
 toy.packstring = assert(c.packstring)
@@ -22,6 +23,12 @@ function toy.register_protocol(class)
     local id = class.id
     assert(proto[id]==nil)
     proto[id] = class
+end
+
+function toy.register_socket_protocol(class)
+    local opaque = class.opaque
+    assert(socket_proto[opaque]==nil)
+    socket_proto[opaque] = class
 end
 
 local coroutine_pool = setmetatable({}, { __mode = "kv" })
@@ -76,12 +83,17 @@ local function suspend(co, result, command, ...)
 end
 
 function toy.dispatch_message(prototype, session, msg, sz)
-    local p = proto[prototype]
+    local p
+    if prototype == toy.PTYPE_SOCKET then
+        p = socket_proto[session]
+    else
+        p = proto[prototype]
+    end
     if p then
         local f = p.dispatch
         if f then
             local co = co_create(f)
-            suspend(co, coroutine_resume(co, p.unpack(session,msg,sz)))
+            suspend(co, coroutine_resume(co, session, p.unpack(msg,sz)))
         end
     end
     while true do

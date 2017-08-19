@@ -11,7 +11,7 @@ LUA_STATICLIB = $(LUA_SRC_PATH)/src/liblua.a
 LUA_LIB = $(LUA_STATICLIB)
 LUA_INC = $(LUA_SRC_PATH)/src
 
-LUA_CLIB = ltoy socketdriver netpack
+LUA_CLIB = ltoy socketdriver netpack crypt
 
 TOY_SRC = toy_main.c toy_env.c toy_mq.c toy_timer.c toy_socket.c socket_server.c toy_server.c
 
@@ -36,6 +36,9 @@ $(LUA_CLIB_PATH)/socketdriver.so : lualib-src/lua-socket.c | $(LUA_CLIB_PATH)
 
 $(LUA_CLIB_PATH)/netpack.so : lualib-src/lua-netpack.c | $(LUA_CLIB_PATH)
 	$(CC) $(CFLAGS) $(SHARED) $^ -Itoy-src -o $@ 
+
+$(LUA_CLIB_PATH)/crypt.so : lualib-src/lua-crypt.c lualib-src/lsha1.c | $(LUA_CLIB_PATH)
+	$(CC) $(CFLAGS) $(SHARED) $^ -o $@ 
 
 clean:
 	rm -f $(TOY_BUILD_PATH)/toy $(LUA_CLIB_PATH)/*.so
