@@ -5,4 +5,9 @@ M.SOCK_OPAQUE_CLIENT = 1
 M.SOCK_OPAQUE_CLUSTER = 2
 M.SOCK_OPAQUE_MYSQL = 3
 
+M.ERRCODE = {
+    OK = 0,
+    ERR = 1,
+}
+
 return M

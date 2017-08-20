@@ -1,130 +1,46 @@
 local toy = require "toy"
 local timer = require "timer"
-local mysql = require "mysql"
-
-local function dump(obj)
-    local getIndent, quoteStr, wrapKey, wrapVal, dumpObj
-    getIndent = function(level)
-        return string.rep("\t", level)
-    end
-    quoteStr = function(str)
-        return '"' .. string.gsub(str, '"', '\\"') .. '"'
-    end
-    wrapKey = function(val)
-        if type(val) == "number" then
-            return "[" .. val .. "]"
-        elseif type(val) == "string" then
-            return "[" .. quoteStr(val) .. "]"
-        else
-            return "[" .. tostring(val) .. "]"
-        end
-    end
-    wrapVal = function(val, level)
-        if type(val) == "table" then
-            return dumpObj(val, level)
-        elseif type(val) == "number" then
-            return val
-        elseif type(val) == "string" then
-            return quoteStr(val)
-        else
-            return tostring(val)
-        end
-    end
-    dumpObj = function(obj, level)
-        if type(obj) ~= "table" then
-            return wrapVal(obj)
-        end
-        level = level + 1
-        local tokens = {}
-        tokens[#tokens + 1] = "{"
-        for k, v in pairs(obj) do
-            tokens[#tokens + 1] = getIndent(level) .. wrapKey(k) .. " = " .. wrapVal(v, level) .. ","
-        end
-        tokens[#tokens + 1] = getIndent(level - 1) .. "}"
-        return table.concat(tokens, "\n")
-    end
-    return dumpObj(obj, 0)
-end
-
-local function test2( db)
-    local i=1
-    while true do
-        local    res = db:query("select * from cats order by id asc")
-        print ( "test2 loop times=" ,i,"\n","query result=",dump( res ) )
-        res = db:query("select * from cats order by id asc")
-        print ( "test2 loop times=" ,i,"\n","query result=",dump( res ) )
-
-        toy.sleep(1000)
-        i=i+1
-    end
-end
-local function test3( db)
-    local i=1
-    while true do
-        local    res = db:query("select * from cats order by id asc")
-        print ( "test3 loop times=" ,i,"\n","query result=",dump( res ) )
-        res = db:query("select * from cats order by id asc")
-        print ( "test3 loop times=" ,i,"\n","query result=",dump( res ) )
-        toy.sleep(1000)
-        i=i+1
-    end
-end
+local mysqldriver = require "mysqldriver"
+local utils = require "utils"
+local cfg = require "sqlcfg"
 
 function start( ... )
+    os.execute(string.format("cd examples/mysql && sh createdb.sh %s %s %s",cfg.user,cfg.pwd,cfg.db))
     local function on_connect(db)
         db:query("set charset utf8")
     end
-    local db=mysql.connect({
+    local db_proxy = mysqldriver.connect({
         host="127.0.0.1",
         port=3306,
-        database="mysql",
-        user="root",
-        password="123456",
+        db=cfg.db,
+        user=cfg.user,
+        pwd=cfg.pwd,
         max_packet_size = 1024 * 1024,
         on_connect = on_connect,
     })
-    if not db then
-        print("failed to connect")
+    if not db_proxy then
+        print("failed to connect",utils.table_str(cfg))
+        return
     end
     print("testmysql success to connect to mysql server")
 
-    local res = db:query("drop table if exists cats")
-    res = db:query("create table cats "
-                       .."(id serial primary key, ".. "name varchar(5))")
-    print( dump( res ) )
+    db_proxy:query("insert into tbl_player (rl_sName,rl_sData) values (\'Bob\',\'aa\'),(\'Tomy\',\'bb\')", function (status, res, sql)
+        print ( sql, utils.table_str( res ) )
+    end)
+    
+    db_proxy:query("select * from tbl_player", function (status, res, sql)
+        print ( sql, utils.table_str( res ) )
+    end)
 
-    res = db:query("insert into cats (name) "
-                             .. "values (\'Bob\'),(\'\'),(null)")
-    print ( dump( res ) )
+    db_proxy:query("delete from tbl_player where rl_sName=\'Tomy\'", function (status, res, sql)
+        print ( sql, utils.table_str( res ) )
+    end)
 
-    res = db:query("select * from cats order by id asc")
-    print ( dump( res ) )
+    db_proxy:query("select * from tbl_player", function (status, res, sql)
+        print ( sql, utils.table_str( res ) )
+    end)
 
-    -- test in another coroutine
-    toy.fork( test2, db)
-    toy.fork( test3, db)
-    -- multiresultset test
-    res = db:query("select * from cats order by id asc ; select * from cats")
-    print ("multiresultset test result=", dump( res ) )
-    -- bad sql statement
-    local res =  db:query("select * from notexisttable" )
-    print( "bad query test result=" ,dump(res) )
-
-    local i=1
-    while true do
-        local    res = db:query("select * from cats order by id asc")
-        print ( "test1 loop times=" ,i,"\n","query result=",dump( res ) )
-
-        res = db:query("select * from cats order by id asc")
-        print ( "test1 loop times=" ,i,"\n","query result=",dump( res ) )
-
-
-        toy.sleep(1000)
-        i=i+1
-    end
-
-    --db:disconnect()
-    --toy.exit()
+    db_proxy:disconnect()
 end
 
 timer.timeout(0, start)
